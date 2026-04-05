@@ -392,17 +392,25 @@
 
   /* Modal */
   .modal-overlay {
-    display: none;
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.6);
     backdrop-filter: blur(4px);
     z-index: 100;
+    display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s, visibility 0.2s;
   }
 
-  .modal-overlay.active { display: flex; }
+  .modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
 
   .modal {
     background: var(--card);
