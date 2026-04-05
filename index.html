@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project D-day Counter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f13;
+    --card: #1a1a24;
+    --card-hover: #22222e;
+    --border: #2a2a3a;
+    --text: #e8e8ef;
+    --text-dim: #8888a0;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.3);
+    --danger: #ff6b6b;
+    --success: #51cf66;
+    --warning: #ffd43b;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  .projects {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .project-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    transition: background 0.2s;
+  }
+
+  .project-card:hover {
+    background: var(--card-hover);
+  }
+
+  .project-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .project-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .project-name {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .project-name .color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .project-date {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+  }
+
+  .dday-display {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .dday-number {
+    font-size: 4rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .dday-number.urgent {
+    background: linear-gradient(135deg, #ff6b6b, #ffa502);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .dday-number.past {
+    background: linear-gradient(135deg, #636e72, #b2bec3);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .dday-number.today {
+    background: linear-gradient(135deg, #51cf66, #69db7c);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .dday-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 0.2rem;
+  }
+
+  /* Progress */
+  .progress-section {
+    margin-bottom: 1.2rem;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-label {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .progress-pct {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Checklist */
+  .checklist {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .checklist li {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.3rem 0;
+  }
+
+  .checklist li .check-box {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 5px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .checklist li.done .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .checklist li.done .check-box::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translateY(-1px);
+  }
+
+  .checklist li.done .check-text {
+    color: var(--text-dim);
+    text-decoration: line-through;
+  }
+
+  /* Add project */
+  .add-btn {
+    width: 100%;
+    padding: 1.2rem;
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(108, 92, 231, 0.05);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal h2 {
+    font-size: 1.15rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.2rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+  }
+
+  .form-group input, .form-group textarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-group input:focus, .form-group textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .form-group small {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  .color-picker {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .color-opt {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .color-opt:hover { transform: scale(1.15); }
+  .color-opt.selected { border-color: var(--text); }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1.3rem;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-primary:hover { opacity: 0.85; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { background: var(--border); color: var(--text); }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem;
+    border-radius: 6px;
+    opacity: 0;
+    transition: all 0.15s;
+    margin-left: auto;
+  }
+
+  .project-card:hover .delete-btn { opacity: 1; }
+  .delete-btn:hover { color: var(--danger); background: rgba(255,107,107,0.1); }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-dim);
+  }
+
+  .empty-state p {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state small {
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 500px) {
+    body { padding: 1rem; }
+    .dday-number { font-size: 3rem; }
+    .project-card { padding: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Project D-day Counter</h1>
+</header>
+
+<div class="projects" id="projects"></div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modal-title">New Project</h2>
+    <div class="form-group">
+      <label>Project Name</label>
+      <input type="text" id="inp-name" placeholder="e.g. Portfolio Launch">
+    </div>
+    <div class="form-group">
+      <label>D-day Date</label>
+      <input type="date" id="inp-date">
+    </div>
+    <div class="form-group">
+      <label>Color</label>
+      <div class="color-picker" id="color-picker"></div>
+    </div>
+    <div class="form-group">
+      <label>Checklist</label>
+      <textarea id="inp-tasks" placeholder="Enter one task per line&#10;e.g.&#10;Design mockup&#10;Set up database&#10;Write tests"></textarea>
+      <small>One task per line</small>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#6c5ce7','#0984e3','#00cec9','#00b894','#fdcb6e','#e17055','#d63031','#e84393','#a29bfe'];
+const STORAGE_KEY = 'dday_projects';
+
+let projects = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let editingId = null;
+let selectedColor = COLORS[0];
+
+// Init color picker
+const colorPicker = document.getElementById('color-picker');
+COLORS.forEach(c => {
+  const el = document.createElement('div');
+  el.className = 'color-opt' + (c === selectedColor ? ' selected' : '');
+  el.style.background = c;
+  el.onclick = () => {
+    document.querySelectorAll('.color-opt').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedColor = c;
+  };
+  colorPicker.appendChild(el);
+});
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+}
+
+function getDday(dateStr) {
+  const target = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+}
+
+function render() {
+  const container = document.getElementById('projects');
+  if (projects.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>No projects yet</p>
+        <small>Add your first project to start the countdown</small>
+      </div>
+      <button class="add-btn" onclick="openModal()">+ Add Project</button>
+    `;
+    return;
+  }
+
+  // Sort: nearest future first, then past
+  const sorted = [...projects].sort((a, b) => {
+    const da = getDday(a.date), db = getDday(b.date);
+    if (da >= 0 && db >= 0) return da - db;
+    if (da < 0 && db < 0) return db - da;
+    return da >= 0 ? -1 : 1;
+  });
+
+  let html = '';
+  sorted.forEach(p => {
+    const days = getDday(p.date);
+    const done = p.tasks.filter(t => t.done).length;
+    const total = p.tasks.length;
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    let ddayText, ddayClass, ddayLabel;
+    if (days > 0) {
+      ddayText = days;
+      ddayClass = days <= 7 ? 'urgent' : '';
+      ddayLabel = 'days left';
+    } else if (days === 0) {
+      ddayText = 'D-0';
+      ddayClass = 'today';
+      ddayLabel = 'today!';
+    } else {
+      ddayText = '+' + Math.abs(days);
+      ddayClass = 'past';
+      ddayLabel = 'days past';
+    }
+
+    html += `
+      <div class="project-card" data-id="${p.id}">
+        <div class="project-top">
+          <div class="project-info">
+            <div class="project-name">
+              <span class="color-dot" style="background:${p.color}"></span>
+              ${esc(p.name)}
+              <button class="delete-btn" onclick="deleteProject('${p.id}')" title="Delete">&#x2715;</button>
+            </div>
+            <div class="project-date">${formatDate(p.date)}</div>
+          </div>
+          <div class="dday-display">
+            <div class="dday-number ${ddayClass}">${ddayText}</div>
+            <div class="dday-label">${ddayLabel}</div>
+          </div>
+        </div>
+        ${total > 0 ? `
+        <div class="progress-section">
+          <div class="progress-header">
+            <span class="progress-label">${done} / ${total} tasks</span>
+            <span class="progress-pct">${pct}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <ul class="checklist">
+          ${p.tasks.map((t, i) => `
+            <li class="${t.done ? 'done' : ''}" onclick="toggleTask('${p.id}', ${i})">
+              <span class="check-box"></span>
+              <span class="check-text">${esc(t.text)}</span>
+            </li>
+          `).join('')}
+        </ul>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  html += `<button class="add-btn" onclick="openModal()">+ Add Project</button>`;
+  container.innerHTML = html;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function openModal(id) {
+  editingId = id || null;
+  const modal = document.getElementById('modal');
+  const title = document.getElementById('modal-title');
+
+  if (editingId) {
+    const p = projects.find(x => x.id === editingId);
+    title.textContent = 'Edit Project';
+    document.getElementById('inp-name').value = p.name;
+    document.getElementById('inp-date').value = p.date;
+    document.getElementById('inp-tasks').value = p.tasks.map(t => t.text).join('\n');
+    selectedColor = p.color;
+  } else {
+    title.textContent = 'New Project';
+    document.getElementById('inp-name').value = '';
+    document.getElementById('inp-date').value = '';
+    document.getElementById('inp-tasks').value = '';
+    selectedColor = COLORS[0];
+  }
+
+  document.querySelectorAll('.color-opt').forEach(el => {
+    el.classList.toggle('selected', el.style.background === selectedColor || rgbToHex(el.style.background) === selectedColor);
+  });
+
+  modal.classList.add('active');
+  document.getElementById('inp-name').focus();
+}
+
+function rgbToHex(rgb) {
+  if (rgb.startsWith('#')) return rgb;
+  const m = rgb.match(/\d+/g);
+  if (!m) return rgb;
+  return '#' + m.slice(0,3).map(x => (+x).toString(16).padStart(2,'0')).join('');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+  editingId = null;
+}
+
+document.getElementById('modal-save').onclick = () => {
+  const name = document.getElementById('inp-name').value.trim();
+  const date = document.getElementById('inp-date').value;
+  const tasksRaw = document.getElementById('inp-tasks').value.trim();
+
+  if (!name || !date) return;
+
+  const taskLines = tasksRaw ? tasksRaw.split('\n').filter(l => l.trim()) : [];
+
+  if (editingId) {
+    const p = projects.find(x => x.id === editingId);
+    const oldTasks = p.tasks;
+    p.name = name;
+    p.date = date;
+    p.color = selectedColor;
+    // Preserve done state for matching tasks
+    p.tasks = taskLines.map(text => {
+      const existing = oldTasks.find(t => t.text === text.trim());
+      return { text: text.trim(), done: existing ? existing.done : false };
+    });
+  } else {
+    projects.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name,
+      date,
+      color: selectedColor,
+      tasks: taskLines.map(text => ({ text: text.trim(), done: false }))
+    });
+  }
+
+  save();
+  render();
+  closeModal();
+};
+
+function toggleTask(projectId, taskIndex) {
+  const p = projects.find(x => x.id === projectId);
+  p.tasks[taskIndex].done = !p.tasks[taskIndex].done;
+  save();
+  render();
+}
+
+function deleteProject(id) {
+  if (!confirm('Delete this project?')) return;
+  projects = projects.filter(p => p.id !== id);
+  save();
+  render();
+}
+
+// Close modal on overlay click
+document.getElementById('modal').onclick = (e) => {
+  if (e.target === document.getElementById('modal')) closeModal();
+};
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+render();
+</script>
+</body>
+</html>
