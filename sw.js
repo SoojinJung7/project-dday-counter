@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dday-v2';
+const CACHE_NAME = 'dday-v3';
 
 const APP_SHELL = [
   '.',

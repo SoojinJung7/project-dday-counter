@@ -505,7 +505,7 @@
 
   .btn-ghost:hover { background: var(--border); color: var(--text); }
 
-  .delete-btn {
+  .edit-btn, .delete-btn {
     background: none;
     border: none;
     color: var(--text-dim);
@@ -515,10 +515,13 @@
     border-radius: 6px;
     opacity: 0;
     transition: all 0.15s;
-    margin-left: auto;
   }
 
+  .edit-btn { margin-left: auto; }
+
+  .project-card:hover .edit-btn,
   .project-card:hover .delete-btn { opacity: 1; }
+  .edit-btn:hover { color: var(--accent); background: rgba(108,92,231,0.1); }
   .delete-btn:hover { color: var(--danger); background: rgba(255,107,107,0.1); }
 
   .empty-state {
@@ -762,6 +765,10 @@ function renderCard(p, isShared, roomCode) {
     ddayLabel = 'days past';
   }
 
+  const editAttr = isShared
+    ? `onclick="openModal('${p.id}','${roomCode}')"`
+    : `onclick="openModal('${p.id}')"`;
+
   const deleteAttr = isShared
     ? `onclick="deleteSharedProject('${roomCode}','${p.id}')"`
     : `onclick="deleteProject('${p.id}')"`;
@@ -778,6 +785,7 @@ function renderCard(p, isShared, roomCode) {
           <div class="project-name">
             <span class="color-dot" style="background:${p.color}"></span>
             ${esc(p.name)}
+            <button class="edit-btn" ${editAttr} title="Edit">&#x270E;</button>
             <button class="delete-btn" ${deleteAttr} title="Delete">&#x2715;</button>
           </div>
           <div class="project-date">${formatDate(p.date)}</div>
