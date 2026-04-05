@@ -601,7 +601,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" id="modal-save">Save</button>
+      <button class="btn btn-primary" id="modal-save" onclick="saveProject()">Save</button>
     </div>
   </div>
 </div>
@@ -624,7 +624,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeRoomModal()">Cancel</button>
-      <button class="btn btn-shared" id="room-modal-save">Create</button>
+      <button class="btn btn-shared" id="room-modal-save" onclick="saveRoom()">Create</button>
     </div>
   </div>
 </div>
@@ -920,37 +920,42 @@ function closeRoomModal() {
   document.getElementById('room-modal').classList.remove('active');
 }
 
-document.getElementById('room-modal-save').onclick = async () => {
-  if (roomModalMode === 'create') {
-    const name = document.getElementById('inp-room-name').value.trim();
-    if (!name) return;
-    const code = genCode();
-    await db.ref('rooms/' + code + '/meta').set({ name, createdAt: Date.now() });
-    joinedRooms.push(code);
-    saveRooms();
-    listenRoom(code);
-    showToast('Room created! Code: ' + code);
-  } else {
-    const code = document.getElementById('inp-room-code').value.trim().toUpperCase();
-    if (!code || code.length !== 6) return;
-    if (joinedRooms.includes(code)) {
-      showToast('Already joined this room');
-      closeRoomModal();
-      return;
+async function saveRoom() {
+  try {
+    if (roomModalMode === 'create') {
+      const name = document.getElementById('inp-room-name').value.trim();
+      if (!name) return;
+      const code = genCode();
+      await db.ref('rooms/' + code + '/meta').set({ name, createdAt: Date.now() });
+      joinedRooms.push(code);
+      saveRooms();
+      listenRoom(code);
+      showToast('Room created! Code: ' + code);
+    } else {
+      const code = document.getElementById('inp-room-code').value.trim().toUpperCase();
+      if (!code || code.length !== 6) return;
+      if (joinedRooms.includes(code)) {
+        showToast('Already joined this room');
+        closeRoomModal();
+        return;
+      }
+      const snap = await db.ref('rooms/' + code + '/meta').once('value');
+      if (!snap.val()) {
+        showToast('Room not found');
+        return;
+      }
+      joinedRooms.push(code);
+      saveRooms();
+      listenRoom(code);
+      showToast('Joined: ' + snap.val().name);
     }
-    const snap = await db.ref('rooms/' + code + '/meta').once('value');
-    if (!snap.val()) {
-      showToast('Room not found');
-      return;
-    }
-    joinedRooms.push(code);
-    saveRooms();
-    listenRoom(code);
-    showToast('Joined: ' + snap.val().name);
+    closeRoomModal();
+    renderShared();
+  } catch (err) {
+    console.error('Room save error:', err);
+    showToast('Error: ' + err.message);
   }
-  closeRoomModal();
-  renderShared();
-};
+}
 
 function copyCode(code) {
   navigator.clipboard.writeText(code).then(() => showToast('Copied: ' + code));
@@ -1017,7 +1022,7 @@ function closeModal() {
   editingRoomCode = null;
 }
 
-document.getElementById('modal-save').onclick = () => {
+function saveProject() {
   const name = document.getElementById('inp-name').value.trim();
   const date = document.getElementById('inp-date').value;
   const tasksRaw = document.getElementById('inp-tasks').value.trim();
@@ -1059,7 +1064,7 @@ document.getElementById('modal-save').onclick = () => {
     renderMy();
   }
   closeModal();
-};
+}
 
 // ── Task toggles ──
 function toggleTask(projectId, taskIndex) {
