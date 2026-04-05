@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project D-day Counter</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
 
@@ -21,6 +23,7 @@
     --danger: #ff6b6b;
     --success: #51cf66;
     --warning: #ffd43b;
+    --shared: #e84393;
   }
 
   body {
@@ -33,21 +36,148 @@
 
   header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
   }
 
   header h1 {
     font-size: 1.4rem;
     font-weight: 600;
-    letter-spacing: -0.02em;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.15em;
   }
 
-  .projects {
+  /* Tabs */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-bottom: 2rem;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 4px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .tab.active.shared-tab {
+    background: var(--shared);
+  }
+
+  .tab:not(.active):hover {
+    color: var(--text);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .container {
     max-width: 720px;
     margin: 0 auto;
+  }
+
+  /* Shared header area */
+  .shared-header {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .shared-header .btn {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+  }
+
+  /* Room info bar */
+  .room-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .room-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .room-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .room-code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: var(--bg);
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    color: var(--shared);
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+
+  .room-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-sm:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .btn-sm.danger:hover {
+    background: rgba(255,107,107,0.15);
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+
+  /* Project cards */
+  .projects {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -61,8 +191,10 @@
     transition: background 0.2s;
   }
 
-  .project-card:hover {
-    background: var(--card-hover);
+  .project-card:hover { background: var(--card-hover); }
+
+  .project-card.shared {
+    border-color: rgba(232, 67, 147, 0.2);
   }
 
   .project-top {
@@ -73,10 +205,7 @@
     margin-bottom: 1.5rem;
   }
 
-  .project-info {
-    flex: 1;
-    min-width: 0;
-  }
+  .project-info { flex: 1; min-width: 0; }
 
   .project-name {
     font-size: 1.15rem;
@@ -99,10 +228,7 @@
     color: var(--text-dim);
   }
 
-  .dday-display {
-    text-align: right;
-    flex-shrink: 0;
-  }
+  .dday-display { text-align: right; flex-shrink: 0; }
 
   .dday-number {
     font-size: 4rem;
@@ -117,20 +243,22 @@
 
   .dday-number.urgent {
     background: linear-gradient(135deg, #ff6b6b, #ffa502);
-    -webkit-background-clip: text;
-    background-clip: text;
+    -webkit-background-clip: text; background-clip: text;
   }
 
   .dday-number.past {
     background: linear-gradient(135deg, #636e72, #b2bec3);
-    -webkit-background-clip: text;
-    background-clip: text;
+    -webkit-background-clip: text; background-clip: text;
   }
 
   .dday-number.today {
     background: linear-gradient(135deg, #51cf66, #69db7c);
-    -webkit-background-clip: text;
-    background-clip: text;
+    -webkit-background-clip: text; background-clip: text;
+  }
+
+  .dday-number.shared-gradient {
+    background: linear-gradient(135deg, #e84393, #fd79a8);
+    -webkit-background-clip: text; background-clip: text;
   }
 
   .dday-label {
@@ -143,9 +271,7 @@
   }
 
   /* Progress */
-  .progress-section {
-    margin-bottom: 1.2rem;
-  }
+  .progress-section { margin-bottom: 1.2rem; }
 
   .progress-header {
     display: flex;
@@ -154,17 +280,9 @@
     margin-bottom: 0.5rem;
   }
 
-  .progress-label {
-    font-size: 0.78rem;
-    color: var(--text-dim);
-    font-weight: 500;
-  }
-
-  .progress-pct {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--accent);
-  }
+  .progress-label { font-size: 0.78rem; color: var(--text-dim); font-weight: 500; }
+  .progress-pct { font-size: 0.85rem; font-weight: 700; color: var(--accent); }
+  .progress-pct.shared-color { color: var(--shared); }
 
   .progress-bar {
     height: 6px;
@@ -178,6 +296,10 @@
     border-radius: 3px;
     background: linear-gradient(90deg, #6c5ce7, #a29bfe);
     transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .progress-fill.shared-fill {
+    background: linear-gradient(90deg, #e84393, #fd79a8);
   }
 
   /* Checklist */
@@ -215,6 +337,11 @@
     border-color: var(--accent);
   }
 
+  .checklist.shared-list li.done .check-box {
+    background: var(--shared);
+    border-color: var(--shared);
+  }
+
   .checklist li.done .check-box::after {
     content: '';
     width: 6px;
@@ -229,7 +356,7 @@
     text-decoration: line-through;
   }
 
-  /* Add project */
+  /* Buttons */
   .add-btn {
     width: 100%;
     padding: 1.2rem;
@@ -247,6 +374,12 @@
     border-color: var(--accent);
     color: var(--accent);
     background: rgba(108, 92, 231, 0.05);
+  }
+
+  .add-btn.shared-add:hover {
+    border-color: var(--shared);
+    color: var(--shared);
+    background: rgba(232, 67, 147, 0.05);
   }
 
   /* Modal */
@@ -274,14 +407,9 @@
     overflow-y: auto;
   }
 
-  .modal h2 {
-    font-size: 1.15rem;
-    margin-bottom: 1.5rem;
-  }
+  .modal h2 { font-size: 1.15rem; margin-bottom: 1.5rem; }
 
-  .form-group {
-    margin-bottom: 1.2rem;
-  }
+  .form-group { margin-bottom: 1.2rem; }
 
   .form-group label {
     display: block;
@@ -304,14 +432,9 @@
     transition: border-color 0.15s;
   }
 
-  .form-group input:focus, .form-group textarea:focus {
-    border-color: var(--accent);
-  }
+  .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); }
 
-  .form-group textarea {
-    resize: vertical;
-    min-height: 80px;
-  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
 
   .form-group small {
     display: block;
@@ -320,10 +443,7 @@
     color: var(--text-dim);
   }
 
-  .color-picker {
-    display: flex;
-    gap: 0.5rem;
-  }
+  .color-picker { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
   .color-opt {
     width: 28px;
@@ -355,12 +475,11 @@
     transition: all 0.15s;
   }
 
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-
+  .btn-primary { background: var(--accent); color: white; }
   .btn-primary:hover { opacity: 0.85; }
+
+  .btn-shared { background: var(--shared); color: white; }
+  .btn-shared:hover { opacity: 0.85; }
 
   .btn-ghost {
     background: transparent;
@@ -392,13 +511,29 @@
     color: var(--text-dim);
   }
 
-  .empty-state p {
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
+  .empty-state p { font-size: 1rem; margin-bottom: 0.5rem; }
+  .empty-state small { font-size: 0.82rem; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    z-index: 200;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
   }
 
-  .empty-state small {
-    font-size: 0.82rem;
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
   }
 
   @media (max-width: 500px) {
@@ -414,8 +549,28 @@
   <h1>Project D-day Counter</h1>
 </header>
 
-<div class="projects" id="projects"></div>
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('my')">My D-day</button>
+    <button class="tab shared-tab" onclick="switchTab('shared')">Shared D-day</button>
+  </div>
 
+  <!-- My D-day Tab -->
+  <div class="tab-content active" id="tab-my">
+    <div class="projects" id="my-projects"></div>
+  </div>
+
+  <!-- Shared D-day Tab -->
+  <div class="tab-content" id="tab-shared">
+    <div id="shared-rooms"></div>
+    <div class="shared-header" id="shared-actions">
+      <button class="btn btn-shared" onclick="openRoomModal('create')">+ Create Room</button>
+      <button class="btn btn-ghost" onclick="openRoomModal('join')">Join with Code</button>
+    </div>
+  </div>
+</div>
+
+<!-- Project Modal -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <h2 id="modal-title">New Project</h2>
@@ -443,30 +598,65 @@
   </div>
 </div>
 
+<!-- Room Modal (Create/Join) -->
+<div class="modal-overlay" id="room-modal">
+  <div class="modal">
+    <h2 id="room-modal-title">Create Room</h2>
+    <div id="room-create-fields">
+      <div class="form-group">
+        <label>Room Name</label>
+        <input type="text" id="inp-room-name" placeholder="e.g. Team Project">
+      </div>
+    </div>
+    <div id="room-join-fields" style="display:none">
+      <div class="form-group">
+        <label>Invite Code</label>
+        <input type="text" id="inp-room-code" placeholder="e.g. ABC123" maxlength="6" style="text-transform:uppercase; letter-spacing:0.15em; font-weight:600;">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeRoomModal()">Cancel</button>
+      <button class="btn btn-shared" id="room-modal-save">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
+// ── Firebase ──
+firebase.initializeApp({
+  apiKey: "AIzaSyAcYdvBOkGlGk2hz8XopOshW2JY1FJm6R8",
+  authDomain: "project--d-f7543.firebaseapp.com",
+  databaseURL: "https://project--d-f7543-default-rtdb.firebaseio.com",
+  projectId: "project--d-f7543",
+  storageBucket: "project--d-f7543.firebasestorage.app",
+  messagingSenderId: "730360009293",
+  appId: "1:730360009293:web:89ad947a134e87ac6b4204"
+});
+const db = firebase.database();
+
+// ── Constants ──
 const COLORS = ['#6c5ce7','#0984e3','#00cec9','#00b894','#fdcb6e','#e17055','#d63031','#e84393','#a29bfe'];
 const STORAGE_KEY = 'dday_projects';
+const ROOMS_KEY = 'dday_joined_rooms';
 
-let projects = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+// ── State ──
+let myProjects = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let joinedRooms = JSON.parse(localStorage.getItem(ROOMS_KEY) || '[]');
+let sharedData = {};       // roomCode -> { meta, projects }
+let listeners = {};        // active firebase listeners
 let editingId = null;
+let editingRoomCode = null;
 let selectedColor = COLORS[0];
+let currentTab = 'my';
+let roomModalMode = 'create';
 
-// Init color picker
-const colorPicker = document.getElementById('color-picker');
-COLORS.forEach(c => {
-  const el = document.createElement('div');
-  el.className = 'color-opt' + (c === selectedColor ? ' selected' : '');
-  el.style.background = c;
-  el.onclick = () => {
-    document.querySelectorAll('.color-opt').forEach(e => e.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedColor = c;
-  };
-  colorPicker.appendChild(el);
-});
-
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+// ── Helpers ──
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
 function getDday(dateStr) {
@@ -481,125 +671,51 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
 }
 
-function render() {
-  const container = document.getElementById('projects');
-  if (projects.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <p>No projects yet</p>
-        <small>Add your first project to start the countdown</small>
-      </div>
-      <button class="add-btn" onclick="openModal()">+ Add Project</button>
-    `;
-    return;
-  }
-
-  // Sort: nearest future first, then past
-  const sorted = [...projects].sort((a, b) => {
-    const da = getDday(a.date), db = getDday(b.date);
-    if (da >= 0 && db >= 0) return da - db;
-    if (da < 0 && db < 0) return db - da;
-    return da >= 0 ? -1 : 1;
-  });
-
-  let html = '';
-  sorted.forEach(p => {
-    const days = getDday(p.date);
-    const done = p.tasks.filter(t => t.done).length;
-    const total = p.tasks.length;
-    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-
-    let ddayText, ddayClass, ddayLabel;
-    if (days > 0) {
-      ddayText = days;
-      ddayClass = days <= 7 ? 'urgent' : '';
-      ddayLabel = 'days left';
-    } else if (days === 0) {
-      ddayText = 'D-0';
-      ddayClass = 'today';
-      ddayLabel = 'today!';
-    } else {
-      ddayText = '+' + Math.abs(days);
-      ddayClass = 'past';
-      ddayLabel = 'days past';
-    }
-
-    html += `
-      <div class="project-card" data-id="${p.id}">
-        <div class="project-top">
-          <div class="project-info">
-            <div class="project-name">
-              <span class="color-dot" style="background:${p.color}"></span>
-              ${esc(p.name)}
-              <button class="delete-btn" onclick="deleteProject('${p.id}')" title="Delete">&#x2715;</button>
-            </div>
-            <div class="project-date">${formatDate(p.date)}</div>
-          </div>
-          <div class="dday-display">
-            <div class="dday-number ${ddayClass}">${ddayText}</div>
-            <div class="dday-label">${ddayLabel}</div>
-          </div>
-        </div>
-        ${total > 0 ? `
-        <div class="progress-section">
-          <div class="progress-header">
-            <span class="progress-label">${done} / ${total} tasks</span>
-            <span class="progress-pct">${pct}%</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width:${pct}%"></div>
-          </div>
-        </div>
-        <ul class="checklist">
-          ${p.tasks.map((t, i) => `
-            <li class="${t.done ? 'done' : ''}" onclick="toggleTask('${p.id}', ${i})">
-              <span class="check-box"></span>
-              <span class="check-text">${esc(t.text)}</span>
-            </li>
-          `).join('')}
-        </ul>
-        ` : ''}
-      </div>
-    `;
-  });
-
-  html += `<button class="add-btn" onclick="openModal()">+ Add Project</button>`;
-  container.innerHTML = html;
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
 }
 
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-function openModal(id) {
-  editingId = id || null;
-  const modal = document.getElementById('modal');
-  const title = document.getElementById('modal-title');
+function saveLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(myProjects));
+}
 
-  if (editingId) {
-    const p = projects.find(x => x.id === editingId);
-    title.textContent = 'Edit Project';
-    document.getElementById('inp-name').value = p.name;
-    document.getElementById('inp-date').value = p.date;
-    document.getElementById('inp-tasks').value = p.tasks.map(t => t.text).join('\n');
-    selectedColor = p.color;
-  } else {
-    title.textContent = 'New Project';
-    document.getElementById('inp-name').value = '';
-    document.getElementById('inp-date').value = '';
-    document.getElementById('inp-tasks').value = '';
-    selectedColor = COLORS[0];
-  }
+function saveRooms() {
+  localStorage.setItem(ROOMS_KEY, JSON.stringify(joinedRooms));
+}
 
-  document.querySelectorAll('.color-opt').forEach(el => {
-    el.classList.toggle('selected', el.style.background === selectedColor || rgbToHex(el.style.background) === selectedColor);
+// ── Tabs ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'my') || (i === 1 && tab === 'shared'));
   });
-
-  modal.classList.add('active');
-  document.getElementById('inp-name').focus();
+  document.getElementById('tab-my').classList.toggle('active', tab === 'my');
+  document.getElementById('tab-shared').classList.toggle('active', tab === 'shared');
 }
+
+// ── Color Picker ──
+const colorPicker = document.getElementById('color-picker');
+COLORS.forEach(c => {
+  const el = document.createElement('div');
+  el.className = 'color-opt' + (c === selectedColor ? ' selected' : '');
+  el.style.background = c;
+  el.onclick = () => {
+    document.querySelectorAll('#color-picker .color-opt').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedColor = c;
+  };
+  colorPicker.appendChild(el);
+});
 
 function rgbToHex(rgb) {
   if (rgb.startsWith('#')) return rgb;
@@ -608,71 +724,378 @@ function rgbToHex(rgb) {
   return '#' + m.slice(0,3).map(x => (+x).toString(16).padStart(2,'0')).join('');
 }
 
+// ── D-day card HTML (reused for both tabs) ──
+function renderCard(p, isShared, roomCode) {
+  const days = getDday(p.date);
+  const done = (p.tasks || []).filter(t => t.done).length;
+  const total = (p.tasks || []).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  let ddayText, ddayClass, ddayLabel;
+  if (days > 0) {
+    ddayText = days;
+    ddayClass = days <= 7 ? 'urgent' : (isShared ? 'shared-gradient' : '');
+    ddayLabel = 'days left';
+  } else if (days === 0) {
+    ddayText = 'D-0';
+    ddayClass = 'today';
+    ddayLabel = 'today!';
+  } else {
+    ddayText = '+' + Math.abs(days);
+    ddayClass = 'past';
+    ddayLabel = 'days past';
+  }
+
+  const deleteAttr = isShared
+    ? `onclick="deleteSharedProject('${roomCode}','${p.id}')"`
+    : `onclick="deleteProject('${p.id}')"`;
+
+  const toggleFn = isShared ? 'toggleSharedTask' : 'toggleTask';
+  const toggleArgs = isShared
+    ? (i) => `'${roomCode}','${p.id}',${i}`
+    : (i) => `'${p.id}',${i}`;
+
+  return `
+    <div class="project-card ${isShared ? 'shared' : ''}">
+      <div class="project-top">
+        <div class="project-info">
+          <div class="project-name">
+            <span class="color-dot" style="background:${p.color}"></span>
+            ${esc(p.name)}
+            <button class="delete-btn" ${deleteAttr} title="Delete">&#x2715;</button>
+          </div>
+          <div class="project-date">${formatDate(p.date)}</div>
+        </div>
+        <div class="dday-display">
+          <div class="dday-number ${ddayClass}">${ddayText}</div>
+          <div class="dday-label">${ddayLabel}</div>
+        </div>
+      </div>
+      ${total > 0 ? `
+      <div class="progress-section">
+        <div class="progress-header">
+          <span class="progress-label">${done} / ${total} tasks</span>
+          <span class="progress-pct ${isShared ? 'shared-color' : ''}">${pct}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill ${isShared ? 'shared-fill' : ''}" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <ul class="checklist ${isShared ? 'shared-list' : ''}">
+        ${p.tasks.map((t, i) => `
+          <li class="${t.done ? 'done' : ''}" onclick="${toggleFn}(${toggleArgs(i)})">
+            <span class="check-box"></span>
+            <span class="check-text">${esc(t.text)}</span>
+          </li>
+        `).join('')}
+      </ul>
+      ` : ''}
+    </div>
+  `;
+}
+
+// ── Render My D-day ──
+function renderMy() {
+  const container = document.getElementById('my-projects');
+  if (myProjects.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>No personal projects yet</p>
+        <small>Add your first D-day to start the countdown</small>
+      </div>
+      <button class="add-btn" onclick="openModal()">+ Add D-day</button>
+    `;
+    return;
+  }
+
+  const sorted = [...myProjects].sort((a, b) => {
+    const da = getDday(a.date), db = getDday(b.date);
+    if (da >= 0 && db >= 0) return da - db;
+    if (da < 0 && db < 0) return db - da;
+    return da >= 0 ? -1 : 1;
+  });
+
+  let html = sorted.map(p => renderCard(p, false)).join('');
+  html += `<button class="add-btn" onclick="openModal()">+ Add D-day</button>`;
+  container.innerHTML = html;
+}
+
+// ── Render Shared D-day ──
+function renderShared() {
+  const container = document.getElementById('shared-rooms');
+  if (joinedRooms.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>No shared rooms yet</p>
+        <small>Create a room or join with a friend's invite code</small>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '';
+  joinedRooms.forEach(code => {
+    const data = sharedData[code];
+    if (!data) return;
+
+    const projects = data.projects ? Object.values(data.projects) : [];
+    const sorted = [...projects].sort((a, b) => {
+      const da = getDday(a.date), db = getDday(b.date);
+      if (da >= 0 && db >= 0) return da - db;
+      if (da < 0 && db < 0) return db - da;
+      return da >= 0 ? -1 : 1;
+    });
+
+    html += `
+      <div class="room-bar">
+        <div class="room-info">
+          <span class="room-name">${esc(data.meta?.name || 'Room')}</span>
+          <span class="room-code">${code}</span>
+        </div>
+        <div class="room-actions">
+          <button class="btn-sm" onclick="copyCode('${code}')">Copy Code</button>
+          <button class="btn-sm danger" onclick="leaveRoom('${code}')">Leave</button>
+        </div>
+      </div>
+    `;
+
+    if (sorted.length > 0) {
+      html += sorted.map(p => renderCard(p, true, code)).join('');
+    }
+
+    html += `<button class="add-btn shared-add" onclick="openModal('', '${code}')" style="margin-bottom:1.5rem">+ Add Shared D-day</button>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ── Firebase listeners ──
+function listenRoom(code) {
+  if (listeners[code]) return;
+  const ref = db.ref('rooms/' + code);
+  listeners[code] = ref;
+  ref.on('value', snap => {
+    const val = snap.val();
+    if (val) {
+      sharedData[code] = val;
+    } else {
+      sharedData[code] = { meta: { name: 'Deleted Room' }, projects: {} };
+    }
+    renderShared();
+  });
+}
+
+function stopListening(code) {
+  if (listeners[code]) {
+    listeners[code].off();
+    delete listeners[code];
+  }
+}
+
+// ── Room actions ──
+function openRoomModal(mode) {
+  roomModalMode = mode;
+  const modal = document.getElementById('room-modal');
+  document.getElementById('room-modal-title').textContent = mode === 'create' ? 'Create Room' : 'Join Room';
+  document.getElementById('room-create-fields').style.display = mode === 'create' ? 'block' : 'none';
+  document.getElementById('room-join-fields').style.display = mode === 'join' ? 'block' : 'none';
+  document.getElementById('room-modal-save').textContent = mode === 'create' ? 'Create' : 'Join';
+  document.getElementById('inp-room-name').value = '';
+  document.getElementById('inp-room-code').value = '';
+  modal.classList.add('active');
+  setTimeout(() => {
+    (mode === 'create' ? document.getElementById('inp-room-name') : document.getElementById('inp-room-code')).focus();
+  }, 100);
+}
+
+function closeRoomModal() {
+  document.getElementById('room-modal').classList.remove('active');
+}
+
+document.getElementById('room-modal-save').onclick = async () => {
+  if (roomModalMode === 'create') {
+    const name = document.getElementById('inp-room-name').value.trim();
+    if (!name) return;
+    const code = genCode();
+    await db.ref('rooms/' + code + '/meta').set({ name, createdAt: Date.now() });
+    joinedRooms.push(code);
+    saveRooms();
+    listenRoom(code);
+    showToast('Room created! Code: ' + code);
+  } else {
+    const code = document.getElementById('inp-room-code').value.trim().toUpperCase();
+    if (!code || code.length !== 6) return;
+    if (joinedRooms.includes(code)) {
+      showToast('Already joined this room');
+      closeRoomModal();
+      return;
+    }
+    const snap = await db.ref('rooms/' + code + '/meta').once('value');
+    if (!snap.val()) {
+      showToast('Room not found');
+      return;
+    }
+    joinedRooms.push(code);
+    saveRooms();
+    listenRoom(code);
+    showToast('Joined: ' + snap.val().name);
+  }
+  closeRoomModal();
+  renderShared();
+};
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(() => showToast('Copied: ' + code));
+}
+
+function leaveRoom(code) {
+  if (!confirm('Leave this room? (The room will still exist for others)')) return;
+  joinedRooms = joinedRooms.filter(c => c !== code);
+  saveRooms();
+  stopListening(code);
+  delete sharedData[code];
+  renderShared();
+  showToast('Left room');
+}
+
+// ── Project Modal ──
+function openModal(id, roomCode) {
+  editingId = id || null;
+  editingRoomCode = roomCode || null;
+  const modal = document.getElementById('modal');
+  const title = document.getElementById('modal-title');
+  const saveBtn = document.getElementById('modal-save');
+
+  if (editingRoomCode) {
+    saveBtn.className = 'btn btn-shared';
+    title.textContent = editingId ? 'Edit Shared D-day' : 'New Shared D-day';
+  } else {
+    saveBtn.className = 'btn btn-primary';
+    title.textContent = editingId ? 'Edit D-day' : 'New D-day';
+  }
+
+  if (editingId) {
+    let p;
+    if (editingRoomCode) {
+      const data = sharedData[editingRoomCode];
+      p = data?.projects?.[editingId];
+    } else {
+      p = myProjects.find(x => x.id === editingId);
+    }
+    if (p) {
+      document.getElementById('inp-name').value = p.name;
+      document.getElementById('inp-date').value = p.date;
+      document.getElementById('inp-tasks').value = (p.tasks || []).map(t => t.text).join('\n');
+      selectedColor = p.color;
+    }
+  } else {
+    document.getElementById('inp-name').value = '';
+    document.getElementById('inp-date').value = '';
+    document.getElementById('inp-tasks').value = '';
+    selectedColor = COLORS[0];
+  }
+
+  document.querySelectorAll('#color-picker .color-opt').forEach(el => {
+    el.classList.toggle('selected', rgbToHex(el.style.background) === selectedColor);
+  });
+
+  modal.classList.add('active');
+  document.getElementById('inp-name').focus();
+}
+
 function closeModal() {
   document.getElementById('modal').classList.remove('active');
   editingId = null;
+  editingRoomCode = null;
 }
 
 document.getElementById('modal-save').onclick = () => {
   const name = document.getElementById('inp-name').value.trim();
   const date = document.getElementById('inp-date').value;
   const tasksRaw = document.getElementById('inp-tasks').value.trim();
-
   if (!name || !date) return;
 
   const taskLines = tasksRaw ? tasksRaw.split('\n').filter(l => l.trim()) : [];
 
-  if (editingId) {
-    const p = projects.find(x => x.id === editingId);
-    const oldTasks = p.tasks;
-    p.name = name;
-    p.date = date;
-    p.color = selectedColor;
-    // Preserve done state for matching tasks
-    p.tasks = taskLines.map(text => {
-      const existing = oldTasks.find(t => t.text === text.trim());
-      return { text: text.trim(), done: existing ? existing.done : false };
+  if (editingRoomCode) {
+    // Shared project
+    const id = editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    const existing = sharedData[editingRoomCode]?.projects?.[id];
+    const tasks = taskLines.map(text => {
+      const old = existing?.tasks?.find(t => t.text === text.trim());
+      return { text: text.trim(), done: old ? old.done : false };
+    });
+    db.ref('rooms/' + editingRoomCode + '/projects/' + id).set({
+      id, name, date, color: selectedColor, tasks
     });
   } else {
-    projects.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name,
-      date,
-      color: selectedColor,
-      tasks: taskLines.map(text => ({ text: text.trim(), done: false }))
-    });
+    // Personal project
+    if (editingId) {
+      const p = myProjects.find(x => x.id === editingId);
+      const oldTasks = p.tasks;
+      p.name = name;
+      p.date = date;
+      p.color = selectedColor;
+      p.tasks = taskLines.map(text => {
+        const existing = oldTasks.find(t => t.text === text.trim());
+        return { text: text.trim(), done: existing ? existing.done : false };
+      });
+    } else {
+      myProjects.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name, date, color: selectedColor,
+        tasks: taskLines.map(text => ({ text: text.trim(), done: false }))
+      });
+    }
+    saveLocal();
+    renderMy();
   }
-
-  save();
-  render();
   closeModal();
 };
 
+// ── Task toggles ──
 function toggleTask(projectId, taskIndex) {
-  const p = projects.find(x => x.id === projectId);
+  const p = myProjects.find(x => x.id === projectId);
   p.tasks[taskIndex].done = !p.tasks[taskIndex].done;
-  save();
-  render();
+  saveLocal();
+  renderMy();
 }
 
+function toggleSharedTask(roomCode, projectId, taskIndex) {
+  const p = sharedData[roomCode]?.projects?.[projectId];
+  if (!p) return;
+  const newDone = !p.tasks[taskIndex].done;
+  db.ref(`rooms/${roomCode}/projects/${projectId}/tasks/${taskIndex}/done`).set(newDone);
+}
+
+// ── Delete ──
 function deleteProject(id) {
-  if (!confirm('Delete this project?')) return;
-  projects = projects.filter(p => p.id !== id);
-  save();
-  render();
+  if (!confirm('Delete this D-day?')) return;
+  myProjects = myProjects.filter(p => p.id !== id);
+  saveLocal();
+  renderMy();
 }
 
-// Close modal on overlay click
+function deleteSharedProject(roomCode, projectId) {
+  if (!confirm('Delete this shared D-day? Everyone in the room will lose it.')) return;
+  db.ref(`rooms/${roomCode}/projects/${projectId}`).remove();
+}
+
+// ── Modal close handlers ──
 document.getElementById('modal').onclick = (e) => {
   if (e.target === document.getElementById('modal')) closeModal();
 };
-
-// Close modal on Escape
+document.getElementById('room-modal').onclick = (e) => {
+  if (e.target === document.getElementById('room-modal')) closeRoomModal();
+};
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') { closeModal(); closeRoomModal(); }
 });
 
-render();
+// ── Init ──
+renderMy();
+joinedRooms.forEach(code => listenRoom(code));
+renderShared();
 </script>
 </body>
 </html>
